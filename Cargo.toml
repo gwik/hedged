@@ -1,0 +1,31 @@
+[package]
+name = "hedge"
+version = "0.1.0"
+edition = "2021"
+authors = [ "Antonin Amand <antonin.amand@gmail.com>" ]
+license = "MIT"
+description = "An hedged requests implementation as described in The Tail at Scale paper"
+
+[features]
+default = []
+tokio = ["dep:tokio"]
+
+[dependencies]
+histogram = "0.8"
+thiserror = "1"
+tokio = { version = "1", features = ["macros", "time"], optional = true }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
+anyhow = { version = "1", features = ["backtrace"] }
+criterion = { version = "0.4", features = ["html_reports"] }
+poem = "1"
+rand = "0.8"
+reqwest = "0.11"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+hedge = { path = ".", features = ["tokio"] }
+
+[[bench]]
+name = "observe"
+harness = false
