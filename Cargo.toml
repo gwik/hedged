@@ -1,6 +1,6 @@
 [package]
 name = "hedged"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 authors = [ "Antonin Amand <antonin.amand@gmail.com>" ]
 license-file = "LICENSE"
