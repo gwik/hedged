@@ -95,7 +95,8 @@ impl Hedge {
     ///
     /// # Panics
     ///
-    /// This function will panic if `percentile` is not in the `(0.0, 1.0]` range.
+    /// This function will panic if `percentile` is not in the `(0.0, 1.0]` range or `period` is
+    /// zero.
     pub fn new(
         p: u8,
         n: u8,
@@ -105,6 +106,9 @@ impl Hedge {
     ) -> Result<Self> {
         if percentile <= 0.0 || percentile > 1.0 {
             panic!("percentile should in (0.0, 1.0], was {percentile}");
+        }
+        if period == 0 {
+            panic!("period must be greater that 0");
         }
         Ok(Self {
             histogram: AtomicHistogram::new(p, n)?,
@@ -139,11 +143,11 @@ impl Hedge {
     /// # Panics
     ///
     /// Panics if the period is zero.
-    pub fn with_period(self, period: u64) -> Result<Self> {
+    pub fn with_period(self, period: u64) -> Self {
         if period == 0 {
             panic!("period must be greater that 0");
         }
-        Ok(Self { period, ..self })
+        Self { period, ..self }
     }
 
     /// Executes a hedged request algorithm.
