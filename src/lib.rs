@@ -31,6 +31,9 @@ impl From<histogram::Error> for Error {
     }
 }
 
+/// Result type for this crate.
+pub type Result<T> = std::result::Result<T, Error>;
+
 /// A `Hedge` object for managing and performing hedged requests.
 ///
 /// This struct tracks the duration of requests, and calculates the appropriate
@@ -99,7 +102,7 @@ impl Hedge {
         initial_timeout: Duration,
         period: u64,
         percentile: f64,
-    ) -> Result<Self, histogram::Error> {
+    ) -> Result<Self> {
         if percentile <= 0.0 || percentile > 1.0 {
             panic!("percentile should in (0.0, 1.0], was {percentile}");
         }
@@ -119,7 +122,7 @@ impl Hedge {
 
     /// Sets the initial timeout duration to be used before the completion of the first period,
     /// after which the percentile calculation takes place.
-    pub fn with_initial_timeout(self, timeout: Duration) -> Result<Self, histogram::Error> {
+    pub fn with_initial_timeout(self, timeout: Duration) -> Result<Self> {
         Ok(Self {
             current_usec: AtomicU64::new(
                 timeout
@@ -136,7 +139,7 @@ impl Hedge {
     /// # Panics
     ///
     /// Panics if the period is zero.
-    pub fn with_period(self, period: u64) -> Result<Self, histogram::Error> {
+    pub fn with_period(self, period: u64) -> Result<Self> {
         if period == 0 {
             panic!("period must be greater that 0");
         }
@@ -222,7 +225,7 @@ impl Hedge {
     }
 
     /// Observes the duration of a single request.
-    pub fn observe(&self, duration: Duration) -> Result<(), histogram::Error> {
+    pub fn observe(&self, duration: Duration) -> Result<()> {
         self.histogram.increment(
             duration
                 .as_micros()
@@ -239,7 +242,7 @@ impl Hedge {
     }
 
     #[inline(always)]
-    fn rollout(&self) -> Result<(), histogram::Error> {
+    fn rollout(&self) -> Result<()> {
         let snap = self.histogram.snapshot();
         let bucket = snap.percentile(self.percentile)?;
         self.current_usec.store(bucket.end(), Relaxed);
