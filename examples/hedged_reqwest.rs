@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use hedge::Hedge;
+use hedged::Hedge;
 use rand::Rng;
 use reqwest::Client;
 

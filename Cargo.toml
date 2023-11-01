@@ -1,12 +1,13 @@
 [package]
-name = "hedge"
+name = "hedged"
 version = "0.1.0"
 edition = "2021"
 authors = [ "Antonin Amand <antonin.amand@gmail.com>" ]
-license = "MIT"
+license-file = "LICENSE"
 description = "A \"Hedged Requests\" implementation as described in \"The Tail at Scale\" paper"
 keywords = ["distributed", "async"]
-repository = "https://github.com/gwik/hedge"
+repository = "https://github.com/gwik/hedged"
+documentation = "https://docs.rs/hedged"
 
 [features]
 default = []
@@ -26,7 +27,7 @@ rand = "0.8"
 reqwest = "0.11"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-hedge = { path = ".", features = ["tokio"] }
+hedged = { path = ".", features = ["tokio"] }
 
 [[bench]]
 name = "observe"

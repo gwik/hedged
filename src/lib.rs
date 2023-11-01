@@ -19,7 +19,7 @@ use std::{
 
 /// Error type returned by this crate.
 #[derive(Debug, thiserror::Error)]
-#[error("hedge error: {source}")]
+#[error("hedged error: {source}")]
 pub struct Error {
     #[source]
     source: histogram::Error,
@@ -39,7 +39,7 @@ impl From<histogram::Error> for Error {
 /// # Examples
 ///
 /// ```
-/// use hedge::Hedge;
+/// use hedged::Hedge;
 /// use std::time::Duration;
 ///
 /// let hedge = Hedge::new(7, 64, Duration::from_secs(30), 10, 0.95)

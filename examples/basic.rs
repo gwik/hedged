@@ -6,7 +6,7 @@ use std::{
     time::Duration,
 };
 
-use hedge::Hedge;
+use hedged::Hedge;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
