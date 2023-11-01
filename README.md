@@ -1,4 +1,4 @@
-# Hedge
+# hedged
 
 This crate provides functionality to perform hedged requests, inspired by
 the strategies described in ["The Tail at Scale"](https://research.google/pubs/pub40801/).
@@ -21,7 +21,7 @@ use std::{
     time::Duration,
 };
 
-use hedge::Hedge;
+use hedged::Hedge;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
