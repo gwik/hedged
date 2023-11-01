@@ -4,7 +4,9 @@ version = "0.1.0"
 edition = "2021"
 authors = [ "Antonin Amand <antonin.amand@gmail.com>" ]
 license = "MIT"
-description = "An hedged requests implementation as described in The Tail at Scale paper"
+description = "A \"Hedged Requests\" implementation as described in \"The Tail at Scale\" paper"
+keywords = ["distributed", "async"]
+repository = "https://github.com/gwik/hedge"
 
 [features]
 default = []
