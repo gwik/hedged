@@ -1,14 +1,12 @@
 use std::time::{Duration, Instant};
 
 use hedged::Hedge;
-use rand::Rng;
 use reqwest::Client;
 
 #[poem::handler]
 async fn handle() -> String {
-    let wait = if rand::thread_rng().gen::<u32>() % 11 == 0 {
-        let wait = Duration::from_millis(100)
-            + Duration::from_millis(400).mul_f64(rand::thread_rng().gen());
+    let wait = if rand::random::<u32>().is_multiple_of(11) {
+        let wait = Duration::from_millis(100) + Duration::from_millis(400).mul_f64(rand::random());
         tracing::info!("!!! SLOW {wait:?}");
         wait
     } else {
