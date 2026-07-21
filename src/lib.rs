@@ -122,7 +122,7 @@ impl Hedge {
             ),
             observation_count: AtomicU64::new(0),
             period,
-            percentile: percentile * 100.0,
+            percentile,
             min_usec: 0,
         })
     }
@@ -281,7 +281,7 @@ impl Hedge {
         )?;
 
         let observation_count = self.observation_count.fetch_add(1, SeqCst) + 1;
-        if observation_count % self.period == 0 {
+        if observation_count.is_multiple_of(self.period) {
             self.rollout()?;
         }
 
@@ -290,9 +290,13 @@ impl Hedge {
 
     #[inline(always)]
     fn rollout(&self) -> Result<()> {
-        let snap = self.histogram.snapshot();
-        let bucket = snap.percentile(self.percentile)?;
-        self.current_usec.store(bucket.end(), Relaxed);
+        let snap = self.histogram.load();
+        if let Some(end) = snap
+            .quantile(self.percentile)?
+            .and_then(|qr| qr.into_entries().first_key_value().map(|v| v.1.end()))
+        {
+            self.current_usec.store(end, Relaxed);
+        }
         Ok(())
     }
 }
