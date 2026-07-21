@@ -54,6 +54,7 @@ pub struct Hedge {
     observation_count: AtomicU64,
     period: u64,
     percentile: f64,
+    min_usec: u64,
 }
 
 impl Default for Hedge {
@@ -69,6 +70,7 @@ impl Default for Hedge {
             observation_count: AtomicU64::new(0),
             period: 10,
             percentile: 0.95,
+            min_usec: 0,
         }
     }
 }
@@ -121,6 +123,7 @@ impl Hedge {
             observation_count: AtomicU64::new(0),
             period,
             percentile: percentile * 100.0,
+            min_usec: 0,
         })
     }
 
@@ -148,6 +151,33 @@ impl Hedge {
             panic!("period must be greater that 0");
         }
         Self { period, ..self }
+    }
+
+    /// Sets a lower bound on the hedging timeout.
+    ///
+    /// No hedged request will be issued for an in-flight call until at least this duration has
+    /// elapsed, regardless of the value derived from the tracked percentile. This is useful to
+    /// prevent unnecessary hedging when overall latencies are very low (e.g. setting a floor of
+    /// `10ms` ensures that a percentile value of `1ms` does not trigger a hedge).
+    ///
+    /// The histogram and percentile tracking are unaffected; observations continue to update the
+    /// internal distribution and [`Hedge::value`] simply returns the larger of the tracked
+    /// percentile and this floor.
+    ///
+    /// Passing [`Duration::ZERO`] disables the floor (the default).
+    pub fn with_min_timeout(self, timeout: Duration) -> Result<Self> {
+        Ok(Self {
+            min_usec: timeout
+                .as_micros()
+                .try_into()
+                .map_err(|_| histogram::Error::Overflow)?,
+            ..self
+        })
+    }
+
+    /// Returns the configured minimum timeout below which hedging will never be triggered.
+    pub fn min_timeout(&self) -> Duration {
+        Duration::from_micros(self.min_usec)
     }
 
     /// Executes a hedged request algorithm.
@@ -223,9 +253,22 @@ impl Hedge {
     }
 
     /// Returns the current value of the percentile.
+    ///
+    /// The returned value is the larger of the tracked percentile and the configured minimum
+    /// timeout (see [`Hedge::with_min_timeout`]).
+    /// To see currently tracked percentile without the minimum timeout applied, see [`Hedge::tracked_value`].
     pub fn value(&self) -> Duration {
         let current = self.current_usec.load(Relaxed);
-        Duration::from_micros(current)
+        Duration::from_micros(current.max(self.min_usec))
+    }
+
+    /// Returns the tracked percentile value, unaffected by the configured minimum timeout.
+    ///
+    /// Unlike [`Hedge::value`], this does not apply the floor set via
+    /// [`Hedge::with_min_timeout`]; it reflects the raw percentile derived from observed
+    /// durations (or the initial timeout, if no rollout has occurred yet).
+    pub fn tracked_value(&self) -> Duration {
+        Duration::from_micros(self.current_usec.load(Relaxed))
     }
 
     /// Observes the duration of a single request.
@@ -287,5 +330,45 @@ mod tests {
 
         inner.observe(Duration::from_secs(10)).unwrap();
         assert_eq!(3.0, inner.value().as_secs_f64().round());
+    }
+
+    #[test]
+    fn test_min_timeout_floor() {
+        let initial = Duration::from_secs(30);
+        let min = Duration::from_millis(10);
+        let inner = Hedge::new(7, 64, initial, 5, 0.9)
+            .unwrap()
+            .with_min_timeout(min)
+            .unwrap();
+
+        // Initial value is above the floor; it should be returned unchanged.
+        assert_eq!(initial, inner.value());
+        assert_eq!(min, inner.min_timeout());
+
+        // Drive observations well below the floor; the tracked percentile
+        // would otherwise be in the microsecond range.
+        for _ in 0..5 {
+            inner.observe(Duration::from_micros(100)).unwrap();
+        }
+
+        // The floor must clamp the exposed value.
+        assert_eq!(min, inner.value());
+
+        // The tracked value must remain unaffected by the floor.
+        assert!(inner.tracked_value() < Duration::from_millis(1));
+    }
+
+    #[test]
+    fn test_min_timeout_disabled_by_default() {
+        let initial = Duration::from_secs(30);
+        let inner = Hedge::new(7, 64, initial, 5, 0.9).unwrap();
+        assert_eq!(Duration::ZERO, inner.min_timeout());
+
+        for _ in 0..5 {
+            inner.observe(Duration::from_micros(100)).unwrap();
+        }
+
+        // Without a floor, the tracked percentile is exposed verbatim.
+        assert!(inner.value() < Duration::from_millis(1));
     }
 }
